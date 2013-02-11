@@ -60,7 +60,7 @@ public class ObjectResource {
 		
 		Log.d("Received PUT from client [data.length=%s,collection=%s]", object.length, collection);
 		
-		List<DBObject> dbobjects = BsonConverter.fromBSON(object);
+		List<DBObject> dbobjects = BsonConverter.fromBsonList(object);
 		
 		if(dbobjects == null) {
 			// If there was no object in content, return BAD_REQUEST error.
@@ -116,7 +116,7 @@ public class ObjectResource {
 		
 		Log.d("Received POST from client [data.length=%s,collection=%s]", object.length, collection);
 		
-		List<DBObject> dbobjects = BsonConverter.fromBSON(object);
+		List<DBObject> dbobjects = BsonConverter.fromBsonList(object);
 		
 		if(dbobjects == null) {
 			// If there was no object in content, return BAD_REQUEST error.
