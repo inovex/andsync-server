@@ -15,12 +15,16 @@
  */
 package de.inovex.andsync.rest;
 
+import com.mongodb.BasicDBList;
+import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 import de.inovex.andsync.Constants;
 import de.inovex.andsync.db.ObjectManager;
 import de.inovex.andsync.exception.MissingIdException;
+import de.inovex.andsync.util.Base64;
 import de.inovex.andsync.util.BsonConverter;
 import de.inovex.andsync.util.Log;
+import java.net.HttpURLConnection;
 import java.util.List;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -89,13 +93,37 @@ public class ObjectResource {
 	
 	@GET
 	@Path("/{id}")
-	public Response getById(@PathParam("collection") String collection, @PathParam("id") String id) {
+	public Response getByIds(@PathParam("collection") String collection, @PathParam("id") String ids) {
 		
-		Log.d("Received GET from client with id [collection=%s,id=%s]", collection, id);
+		Log.d("Received GET from client with id [collection=%s,base64(ids).length=%s]", collection, ids.length());
 		
-		DBObject obj = ObjectManager.INSTANCE.find(collection, id);
+		try {
+			// Decode base64 parameter string to DBObject (containing all the requested ids)
+			BasicDBObject idList = (BasicDBObject)BsonConverter.fromBson(Base64.decode(ids));
+			if(!(idList instanceof DBObject)) {
+				Log.w("Received id list wasn't a valid BasicDBObject.");
+				return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).build();
+			}
+			
+			// Create list for obejcts
+			BasicDBList objects = new BasicDBList();
+			
+			for(Object id : idList.values()) {
+				if(!(id instanceof ObjectId)) {
+					Log.w("Received id list contained non ObjectId items.");
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).build();
+				}
+				// Get object for requested id and add to list.
+				objects.add(ObjectManager.INSTANCE.find(collection, (ObjectId)id));
+			}
 		
-		return Response.ok(BsonConverter.toBSON(obj)).build();
+			// Send result list as byte array to client.
+			return Response.ok(BsonConverter.toByteArray(objects)).build();
+		
+		} catch(Exception ex) {
+			Log.w("Received id list wasn't valid. [Caused by: %s]", ex.getMessage());
+			return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).build();
+		}
 		
 	}
 	

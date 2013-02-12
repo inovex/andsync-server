@@ -63,9 +63,9 @@ public enum ObjectManager {
 		
 	}
 	
-	public DBObject find(String collection, String id) {
+	public DBObject find(String collection, ObjectId id) {
 		DBCollection col = DatabaseManager.INSTANCE.getCollection(collection);
-		return col.findOne(new ObjectId(id));
+		return col.findOne(id);
 	}
 	
 	public void update(String collection, DBObject object) {
