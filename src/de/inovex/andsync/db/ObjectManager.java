@@ -17,12 +17,18 @@ package de.inovex.andsync.db;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
+import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
+import com.mongodb.QueryBuilder;
+import com.mongodb.WriteResult;
+import de.inovex.andsync.Constants;
 import de.inovex.andsync.exception.MissingIdException;
 import de.inovex.andsync.util.DBUtil;
 import de.inovex.andsync.util.Log;
+import de.inovex.andsync.util.TimeUtil;
 import java.util.List;
 import org.bson.types.ObjectId;
+import static de.inovex.andsync.Constants.*;
 
 /**
  * The {@code ObjectManager} is responsible for handling of objects. It will
@@ -51,6 +57,7 @@ public enum ObjectManager {
 	public void save(String collection, DBObject object) {
 		
 		Log.d("Storing object into database [%s]", object.toString());
+		object.put(MONGO_LAST_MODIFIED, TimeUtil.getTimestamp());
 		DBCollection col = DatabaseManager.INSTANCE.getCollection(collection);
 		col.save(object);
 		
@@ -63,9 +70,31 @@ public enum ObjectManager {
 		
 	}
 	
+	public List<DBObject> findByTime(String collection, long mtime) {
+		DBCollection col = DatabaseManager.INSTANCE.getCollection(collection);
+		DBCursor cur = col.find(new BasicDBObject(MONGO_LAST_MODIFIED, new BasicDBObject("$gt", mtime)));
+		return DBUtil.collectionFromCursor(cur);
+	}
+	
 	public DBObject find(String collection, ObjectId id) {
 		DBCollection col = DatabaseManager.INSTANCE.getCollection(collection);
 		return col.findOne(id);
+	}
+	
+	public long findLastModified(String collection) {
+		
+		DBCollection col = DatabaseManager.INSTANCE.getCollection(collection);
+		DBObject res = col.group(DBUtil.getEmptyObject(), DBUtil.getEmptyObject(), new BasicDBObject("maxtime", 0),
+				"function(obj,prev) { if(prev.maxtime < obj._mtime) prev.maxtime = obj._mtime; }");
+		
+		if(res == null || !res.containsField("0") 
+				|| !(res.get("0") instanceof DBObject) 
+				|| !((DBObject)res.get("0")).containsField("maxtime")) {
+			return 0;
+		}
+		
+		return (Long)((DBObject)res.get("0")).get("maxtime");
+		
 	}
 	
 	public void update(String collection, DBObject object) {
@@ -75,6 +104,7 @@ public enum ObjectManager {
 		}
 		
 		Log.d("Updating object in database [%s]", object.toString());
+		object.put(MONGO_LAST_MODIFIED, TimeUtil.getTimestamp());
 		DBCollection col = DatabaseManager.INSTANCE.getCollection(collection);
 		col.save(object);
 		
@@ -84,6 +114,12 @@ public enum ObjectManager {
 		
 		DBCollection col = DatabaseManager.INSTANCE.getCollection(collection);
 		col.remove(new BasicDBObject("_id", id));
+		
+		col = DatabaseManager.INSTANCE.getMetaCollection();
+		BasicDBObject query = new BasicDBObject(Constants.MONGO_META_CLASS, collection);
+		BasicDBObject deletionObj = new BasicDBObject(Constants.MONGO_META_CLASS, collection)
+				.append(Constants.MONGO_META_DELETION, TimeUtil.getTimestamp());
+		col.update(query, deletionObj, true, false);
 		
 	}
 	

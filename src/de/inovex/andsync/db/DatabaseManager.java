@@ -24,7 +24,7 @@ import java.net.UnknownHostException;
  *
  * @author Tim Roes <tim.roes@inovex.de>
  */
-enum DatabaseManager {
+public enum DatabaseManager {
 	
 	/**
 	 * The single instance of the {@link DatabaseManager}.
@@ -44,6 +44,10 @@ enum DatabaseManager {
 	
 	public DBCollection getCollection(String collection) {
 		return db.getCollection(collection);
+	}
+	
+	public DBCollection getMetaCollection() {
+		return db.getCollection("_de.inovex.andsync.meta");
 	}
 	
 }

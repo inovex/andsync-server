@@ -15,6 +15,7 @@
  */
 package de.inovex.andsync.util;
 
+import com.mongodb.BasicDBObject;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import java.util.ArrayList;
@@ -26,6 +27,8 @@ import java.util.List;
  */
 public class DBUtil {
 	
+	private static DBObject emptyObject = new BasicDBObject(0);
+	
 	public static List<DBObject> collectionFromCursor(DBCursor cursor) {
 		
 		List<DBObject> objects = new ArrayList<DBObject>(cursor.count());
@@ -34,6 +37,10 @@ public class DBUtil {
 		}
 		return objects;
 		
+	}
+	
+	public static DBObject getEmptyObject() {
+		return emptyObject;
 	}
 	
 }

@@ -24,7 +24,6 @@ import de.inovex.andsync.exception.MissingIdException;
 import de.inovex.andsync.util.Base64;
 import de.inovex.andsync.util.BsonConverter;
 import de.inovex.andsync.util.Log;
-import java.net.HttpURLConnection;
 import java.util.List;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -81,14 +80,37 @@ public class ObjectResource {
 	
 	@GET
 	public Response getObjects(@PathParam("collection") String collection) {
-		
-		// TODO: split into several chunks if too many objects
+
 		Log.d("Received GET from client [collection=%s]", collection);
 		
 		List<DBObject> objects = ObjectManager.INSTANCE.findAll(collection);
+		if(objects.isEmpty()) {
+			return Response.noContent().header(Constants.HTTP_MODIFIED_HEADER, 
+					ObjectManager.INSTANCE.findLastModified(collection)).build();
+		}
 		
-		return Response.ok(BsonConverter.toBSON(objects)).build();
+		return Response.ok(BsonConverter.toBSON(objects)).header(Constants.HTTP_MODIFIED_HEADER, 
+				ObjectManager.INSTANCE.findLastModified(collection)).build();
 			
+	}
+	
+	@GET
+	@Path("/" + Constants.REST_MTIME_PATH + "/{time}")
+	public Response getByMtime(@PathParam("collection") String collection, @PathParam("time") String time) {
+		
+		try {
+			long mTime = Long.valueOf(time);
+			List<DBObject> objects = ObjectManager.INSTANCE.findByTime(collection, mTime);
+			if(objects.isEmpty()) {
+				return Response.noContent().header(Constants.HTTP_MODIFIED_HEADER, 
+						ObjectManager.INSTANCE.findLastModified(collection)).build();
+			}
+			return Response.ok(BsonConverter.toBSON(objects)).header(Constants.HTTP_MODIFIED_HEADER, 
+					ObjectManager.INSTANCE.findLastModified(collection)).build();
+		} catch(NumberFormatException ex) {
+			return Response.status(Status.BAD_REQUEST).build();
+		}
+		
 	}
 	
 	@GET
@@ -102,7 +124,7 @@ public class ObjectResource {
 			BasicDBObject idList = (BasicDBObject)BsonConverter.fromBson(Base64.decode(ids));
 			if(!(idList instanceof DBObject)) {
 				Log.w("Received id list wasn't a valid BasicDBObject.");
-				return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).build();
+				return Response.status(Status.BAD_REQUEST).build();
 			}
 			
 			// Create list for obejcts
@@ -111,7 +133,7 @@ public class ObjectResource {
 			for(Object id : idList.values()) {
 				if(!(id instanceof ObjectId)) {
 					Log.w("Received id list contained non ObjectId items.");
-					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).build();
+					return Response.status(Status.BAD_REQUEST).build();
 				}
 				// Get object for requested id and add to list.
 				objects.add(ObjectManager.INSTANCE.find(collection, (ObjectId)id));
@@ -122,7 +144,7 @@ public class ObjectResource {
 		
 		} catch(Exception ex) {
 			Log.w("Received id list wasn't valid. [Caused by: %s]", ex.getMessage());
-			return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).build();
+			return Response.status(Status.BAD_REQUEST).build();
 		}
 		
 	}
