@@ -98,6 +98,8 @@ public class ObjectResource {
 	@Path("/" + Constants.REST_MTIME_PATH + "/{time}")
 	public Response getByMtime(@PathParam("collection") String collection, @PathParam("time") String time) {
 		
+		Log.d("Received GET from client with id [collection=%s,mtime=%s]", collection, time);
+		
 		try {
 			long mTime = Long.valueOf(time);
 			List<DBObject> objects = ObjectManager.INSTANCE.findByTime(collection, mTime);
