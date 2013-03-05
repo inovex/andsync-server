@@ -51,7 +51,7 @@ public class MetaResource {
 		DBCollection col = DatabaseManager.INSTANCE.getMetaCollection();
 		DBObject meta = col.findOne(new BasicDBObject(Constants.MONGO_META_CLASS, collection));
 		String lastDeletion = (meta != null && meta.get(Constants.MONGO_META_DELETION) != null) ?
-				String.valueOf((Long)meta.get(Constants.MONGO_META_DELETION)) : "0";
+				String.valueOf(meta.get(Constants.MONGO_META_DELETION)) : "0";
 		return Response.ok(lastDeletion).build();
 	}
 	
