@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package de.inovex.andsync.db;
+package de.inovex.andsync.manager;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
@@ -42,6 +42,9 @@ public enum ObjectManager {
 	 * The single instance of the {@link ObjectManager}.
 	 */
 	INSTANCE;
+	
+	private static final String META_COLLECTION = "-metainformation";
+	private static final String META_DELETION_KEY = "dtime";
 
 	/**
 	 * Save a new object to the specified collection. This won't check
@@ -56,32 +59,34 @@ public enum ObjectManager {
 		
 		Log.d("Storing object into database [%s]", object.toString());
 		object.put(MONGO_LAST_MODIFIED, TimeUtil.getTimestamp());
-		DBCollection col = DatabaseManager.INSTANCE.getCollection(collection);
+		DBCollection col = DatabaseManager.get().getCollection(collection);
 		col.save(object);
+		
+		PushManager.get().notifyAll(collection);
 		
 	}
 	
 	public List<DBObject> findAll(String collection) {
 		
-		DBCollection col = DatabaseManager.INSTANCE.getCollection(collection);
+		DBCollection col = DatabaseManager.get().getCollection(collection);
 		return DBUtil.collectionFromCursor(col.find());
 		
 	}
 	
 	public List<DBObject> findByTime(String collection, long mtime) {
-		DBCollection col = DatabaseManager.INSTANCE.getCollection(collection);
+		DBCollection col = DatabaseManager.get().getCollection(collection);
 		DBCursor cur = col.find(new BasicDBObject(MONGO_LAST_MODIFIED, new BasicDBObject("$gt", mtime)));
 		return DBUtil.collectionFromCursor(cur);
 	}
 	
 	public DBObject find(String collection, ObjectId id) {
-		DBCollection col = DatabaseManager.INSTANCE.getCollection(collection);
+		DBCollection col = DatabaseManager.get().getCollection(collection);
 		return col.findOne(id);
 	}
 	
 	public long findLastModified(String collection) {
 		
-		DBCollection col = DatabaseManager.INSTANCE.getCollection(collection);
+		DBCollection col = DatabaseManager.get().getCollection(collection);
 		DBObject res = col.group(DBUtil.getEmptyObject(), DBUtil.getEmptyObject(), new BasicDBObject("maxtime", 0),
 				"function(obj,prev) { if(prev.maxtime < obj._mtime) prev.maxtime = obj._mtime; }");
 		
@@ -103,21 +108,33 @@ public enum ObjectManager {
 		
 		Log.d("Updating object in database [%s]", object.toString());
 		object.put(MONGO_LAST_MODIFIED, TimeUtil.getTimestamp());
-		DBCollection col = DatabaseManager.INSTANCE.getCollection(collection);
+		DBCollection col = DatabaseManager.get().getCollection(collection);
 		col.save(object);
+		
+		PushManager.get().notifyAll(collection);
 		
 	}
 	
 	public void delete(String collection, ObjectId id) {
 		
-		DBCollection col = DatabaseManager.INSTANCE.getCollection(collection);
+		DBCollection col = DatabaseManager.get().getCollection(collection);
 		col.remove(new BasicDBObject("_id", id));
 		
-		col = DatabaseManager.INSTANCE.getMetaCollection();
+		col = DatabaseManager.get().getCollection(META_COLLECTION);
 		BasicDBObject query = new BasicDBObject(Constants.MONGO_META_CLASS, collection);
 		BasicDBObject deletionObj = new BasicDBObject(Constants.MONGO_META_CLASS, collection)
-				.append(Constants.MONGO_META_DELETION, TimeUtil.getTimestamp());
+				.append(META_DELETION_KEY, TimeUtil.getTimestamp());
 		col.update(query, deletionObj, true, false);
+		
+		PushManager.get().notifyAll(collection);
+		
+	}
+	
+	public int getLastDeleted(String collection) {
+		DBCollection col = DatabaseManager.get().getCollection(META_COLLECTION);
+		DBObject meta = col.findOne(new BasicDBObject(Constants.MONGO_META_CLASS, collection));
+		return (meta != null && meta.get(META_DELETION_KEY) != null) 
+				? Integer.valueOf(meta.get(META_DELETION_KEY).toString()) : 0;
 		
 	}
 	

@@ -19,7 +19,7 @@ import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 import de.inovex.andsync.Constants;
-import de.inovex.andsync.db.ObjectManager;
+import de.inovex.andsync.manager.ObjectManager;
 import de.inovex.andsync.exception.MissingIdException;
 import de.inovex.andsync.util.Base64;
 import de.inovex.andsync.util.BsonConverter;
@@ -38,8 +38,8 @@ import javax.ws.rs.core.Response.Status;
 import org.bson.types.ObjectId;
 
 /**
- * This is the main REST interface, that will handle all the client requests,
- * related to object management.
+ * This REST interface handles all operations on objects, e.g. creation and modification of objects
+ * or returning objects to the client.
  * 
  * @author Tim Roes <tim.roes@inovex.de>
  */

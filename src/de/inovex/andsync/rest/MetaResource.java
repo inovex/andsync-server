@@ -19,7 +19,8 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import de.inovex.andsync.Constants;
-import de.inovex.andsync.db.DatabaseManager;
+import de.inovex.andsync.manager.DatabaseManager;
+import de.inovex.andsync.manager.ObjectManager;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -28,18 +29,22 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 /**
- *
+ * This REST interface handles all meta request about objects, e.g. returning the size of a collection
+ * or return the last deletion time for a collection.
+ * 
  * @author Tim Roes <tim.roes@inovex.de>
  */
 @Path("/" + Constants.REST_META_PATH + "/{collection}")
 public class MetaResource {
+	
+	
 	
 	@GET
 	@Path("/" + Constants.REST_META_SIZE_PATH)
 	@Produces(MediaType.TEXT_PLAIN)
 	public Response getSize(@PathParam("collection") String collection) {
 
-		DBCollection col = DatabaseManager.INSTANCE.getCollection(collection);
+		DBCollection col = DatabaseManager.get().getCollection(collection);
 		return Response.ok(String.valueOf(col.count())).build();
 
 	}
@@ -48,11 +53,8 @@ public class MetaResource {
 	@Path("/" + Constants.REST_META_DELETION_PATH)
 	@Produces(MediaType.TEXT_PLAIN)
 	public Response getLastDeletionTime(@PathParam("collection") String collection) {
-		DBCollection col = DatabaseManager.INSTANCE.getMetaCollection();
-		DBObject meta = col.findOne(new BasicDBObject(Constants.MONGO_META_CLASS, collection));
-		String lastDeletion = (meta != null && meta.get(Constants.MONGO_META_DELETION) != null) ?
-				String.valueOf(meta.get(Constants.MONGO_META_DELETION)) : "0";
-		return Response.ok(lastDeletion).build();
+		int lastDeleted = ObjectManager.INSTANCE.getLastDeleted(collection);
+		return Response.ok(String.valueOf(lastDeleted)).build();
 	}
 	
 }

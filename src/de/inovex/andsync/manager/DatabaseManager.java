@@ -13,41 +13,53 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package de.inovex.andsync.db;
+package de.inovex.andsync.manager;
 
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.Mongo;
-import java.net.UnknownHostException;
+import de.inovex.andsync.Config;
 
 /**
  *
  * @author Tim Roes <tim.roes@inovex.de>
  */
-public enum DatabaseManager {
+public class DatabaseManager {
+	
+	private static DatabaseManager instance;
 	
 	/**
-	 * The single instance of the {@link DatabaseManager}.
+	 * Must be called with the used {@link Config} object to initialize the {@link DatabaseManager}.
+	 * Before this is called {@link #get()} will only return {@code null}.
+	 * 
+	 * @param config The current configuration.
 	 */
-	INSTANCE;
+	public static void init(Config config) {
+		instance = new DatabaseManager(config);
+	}
+	
+	/**
+	 * Returns the {@link DatabaseManager}.
+	 * 
+	 * @return Database manager.
+	 */
+	public static DatabaseManager get() {
+		return instance;
+	}
 	
 	private DB db;
 	
-	private DatabaseManager() {
+	private DatabaseManager(Config config) {
 		try {
-			Mongo mongo = new Mongo();
-			db = mongo.getDB("andsync");
-		} catch (UnknownHostException ex) {
-			throw new Error("Unknown database host.");
+			Mongo mongo = new Mongo(config.getMongoHost(), config.getMongoPort());
+			db = mongo.getDB(config.getMongoDb());
+		} catch (Exception ex) {
+			throw new Error("Could not connect to database.", ex);
 		}		
 	}
 	
 	public DBCollection getCollection(String collection) {
 		return db.getCollection(collection);
-	}
-	
-	public DBCollection getMetaCollection() {
-		return db.getCollection("_de.inovex.andsync.meta");
 	}
 	
 }
