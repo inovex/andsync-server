@@ -27,7 +27,7 @@ import java.util.List;
  */
 public class DBUtil {
 	
-	private static DBObject emptyObject = new BasicDBObject(0);
+	private final static DBObject emptyObject = new BasicDBObject(0);
 	
 	public static List<DBObject> collectionFromCursor(DBCursor cursor) {
 		

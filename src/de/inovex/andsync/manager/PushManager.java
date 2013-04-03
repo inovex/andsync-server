@@ -37,6 +37,7 @@ import java.util.List;
 public class PushManager {
 	
 	private static final String REGISTRATION_COLLECTION = "-registration";
+	private static final String COLLAPSE_KEY = "andsync";
 	private static final int SEND_RETRIES = 10;
 	private static final int MAX_RECEIVERS = 1000;
 	
@@ -90,7 +91,7 @@ public class PushManager {
 		List<String> ids = new ArrayList<String>(registrationIds);
 		
 		Sender sender = new Sender(config.getGcmKey());
-		Message msg = new Message.Builder().build();
+		Message msg = new Message.Builder().collapseKey(COLLAPSE_KEY).build();
 		
 		for(int i = 0; i < ids.size(); i += MAX_RECEIVERS) {
 			try {

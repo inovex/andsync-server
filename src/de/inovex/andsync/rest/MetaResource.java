@@ -15,9 +15,7 @@
  */
 package de.inovex.andsync.rest;
 
-import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
-import com.mongodb.DBObject;
 import de.inovex.andsync.Constants;
 import de.inovex.andsync.manager.DatabaseManager;
 import de.inovex.andsync.manager.ObjectManager;

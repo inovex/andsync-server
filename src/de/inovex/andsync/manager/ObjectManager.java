@@ -74,6 +74,8 @@ public enum ObjectManager {
 	}
 	
 	public List<DBObject> findByTime(String collection, long mtime) {
+		// TODO: Also search in referenced objects, if they have changed! IMPORTANT, breaks functionallity
+		// right now, if a referenced object has been changed, the client won't get that object.
 		DBCollection col = DatabaseManager.get().getCollection(collection);
 		DBCursor cur = col.find(new BasicDBObject(MONGO_LAST_MODIFIED, new BasicDBObject("$gt", mtime)));
 		return DBUtil.collectionFromCursor(cur);
@@ -88,7 +90,7 @@ public enum ObjectManager {
 		
 		DBCollection col = DatabaseManager.get().getCollection(collection);
 		DBObject res = col.group(DBUtil.getEmptyObject(), DBUtil.getEmptyObject(), new BasicDBObject("maxtime", 0),
-				"function(obj,prev) { if(prev.maxtime < obj._mtime) prev.maxtime = obj._mtime; }");
+				"function(obj,prev)	{ if(prev.maxtime < obj._mtime) prev.maxtime = obj._mtime; }");
 		
 		if(res == null || !res.containsField("0") 
 				|| !(res.get("0") instanceof DBObject) 
